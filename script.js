@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 	const svgns = 'http://www.w3.org/2000/svg';
-	const resizes = ['resize-nw', 'resize-ne', 'resize-se', 'resize-sw'];
+	const resizes = ['nw-resize', 'ne-resize', 'se-resize', 'sw-resize'];
 	
 	let inputImage = document.getElementById('inputImage');
 	let svg = document.getElementById('svg');
@@ -13,16 +13,21 @@ document.addEventListener('DOMContentLoaded', function () {
 		return Math.floor(Math.random() * max);
 	}
 	
-	for (let i = 0; i < 4; i++ ) {
-		let newCircle = document.createElementNS(svgns, 'circle');
-		newCircle.setAttribute('id', resizes[i]);
-		newCircle.setAttribute('cx', 0);
-		newCircle.setAttribute('cy', 0);
-		newCircle.setAttribute('r', '5');
-		newCircle.setAttribute('fill', '#29b6f2');
-		newCircle.setAttribute('display', 'none');
-		corners[resizes[i]] = newCircle;
-		svg.appendChild(newCircle);
+	let createCorners = () => {
+		for (let i = 0; i < 4; i++ ) {
+			let corner = document.createElementNS(svgns, 'circle');
+			corner.setAttribute('id', resizes[i]);
+			corner.setAttribute('cx', 0);
+			corner.setAttribute('cy', 0);
+			corner.setAttribute('r', '5');
+			corner.setAttribute('fill', '#29b6f2');
+			corner.setAttribute('display', 'none');
+			corner.addEventListener('mousedown', cornerMouseDown);
+			
+			// newCircle.setAttribute('style', `cursor: ${resizes[i]};`);
+			corners[resizes[i]] = corner;
+			svg.appendChild(corner);
+		}
 	}
 	
 	let cornersDisplayNone = () => {
@@ -37,18 +42,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	};
 	
-	let cornersMove = (event) => {
-		let width = +event.currentTarget.getAttribute('width');
-		let height = +event.currentTarget.getAttribute('height');
-		let x = +event.currentTarget.getAttribute('x');
-		let y = +event.currentTarget.getAttribute('y');
+	let cornersMove = () => {
+		let width = +draggbleFigure.getAttribute('width');
+		let height = +draggbleFigure.getAttribute('height');
+		let x = +draggbleFigure.getAttribute('x');
+		let y = +draggbleFigure.getAttribute('y');
 		let neighbors = [
 			{ dx: x, dy: y },
 			{ dx: x + width, dy: y },
 			{ dx: x + width, dy: y + height },
 			{ dx: x, dy: y + height },
 		];
-		let rotate = event.currentTarget.getAttribute('transform');
+		let rotate = draggbleFigure.getAttribute('transform');
 		for (let i = 0; i < 4; i++ ) {
 			let corner = corners[resizes[i]];
 			if (rotate) {
@@ -68,10 +73,10 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 	
 	let moveRotateArrow = (event) => {
-		let width = +event.currentTarget.getAttribute('width');
-		let x = +event.currentTarget.getAttribute('x') + width + 8;
-		let y = +event.currentTarget.getAttribute('y') - 24;
-		let rotate = event.currentTarget.getAttribute('transform');
+		let width = +draggbleFigure.getAttribute('width');
+		let x = +draggbleFigure.getAttribute('x') + width + 8;
+		let y = +draggbleFigure.getAttribute('y') - 24;
+		let rotate = draggbleFigure.getAttribute('transform');
 		
 		rotateArrow.setAttribute('x', x);
 		rotateArrow.setAttribute('y', y);
@@ -91,8 +96,8 @@ document.addEventListener('DOMContentLoaded', function () {
 			{ dx: x + width, dy: y + height },
 			{ dx: x, dy: y + height },
 		];
-		let newX = (neighbors[0].dx + neighbors[1].dx) / 2;
-		let newY = (neighbors[1].dy + neighbors[2].dy) / 2;
+		let newX = ~~(neighbors[0].dx + neighbors[1].dx) / 2;
+		let newY = ~~(neighbors[1].dy + neighbors[2].dy) / 2;
 		
 		return { rotateX: newX, rotateY: newY };
 	};
@@ -105,12 +110,12 @@ document.addEventListener('DOMContentLoaded', function () {
 		newRect.setAttribute('y', '150');
 		newRect.setAttribute('width', '100');
 		newRect.setAttribute('height', '100');
-		newRect.setAttribute('fill', '#5cceee');
+		newRect.setAttribute('fill', '#d5e8d4');
 		// newRect.setAttribute('stroke', '#000000');
 		// newRect.setAttribute('transform', 'translate(0.5,0.5)');
 		newRect.setAttribute('transform', `rotate(${getRandomInt(361)}, 200, 200)`);
 		
-		newRect.addEventListener('mousedown', mouseDownFigure);
+		newRect.addEventListener('mousedown', figureMouseDown);
 		svg.appendChild(newRect);
 	};
 	
@@ -124,71 +129,161 @@ document.addEventListener('DOMContentLoaded', function () {
 	let shiftY = null;
 	let figureMoveFlag = false;
 	
-	let mouseClickFigure = (event) => {
-		// cornersMove(event);
-		// cornersDisplayBlock();
-		// cornersToForeground();
-	};
-	
-	let figureMove = () => {
-		figureMoveFlag = true;
-	}	
-	
-	let mouseDownFigure = (event) => {
+	let figureMouseDown = (event) => {
 		draggbleFigure = event.currentTarget;
 		svg.appendChild(draggbleFigure);
 		
-		shiftX = event.clientX - draggbleFigure.getBoundingClientRect().x; //+ 0.5;
-		shiftY = event.clientY - draggbleFigure.getBoundingClientRect().y; //+ 0.5;
+		let rotate = draggbleFigure.getAttribute('transform');
 		
-		cornersMove(event);
+		if (rotate) {
+			draggbleFigure.removeAttribute('transform');
+		}
+		
+		shiftX = ~~(event.clientX - draggbleFigure.getBoundingClientRect().x); //+ 0.5;
+		shiftY = ~~(event.clientY - draggbleFigure.getBoundingClientRect().y); //+ 0.5;
+		
+		if (rotate) {
+			draggbleFigure.setAttribute('transform', rotate);
+		}
+		
+		cornersMove();
 		cornersAndRotateArrowToForeground();
-		moveRotateArrow(event);		
+		moveRotateArrow();		
 		
-		svg.addEventListener('mousemove', mouseMoveFigure);
-		
-		draggbleFigure.addEventListener('mouseup', mouseUpFigure);
+		svg.addEventListener('mousemove', figureMouseDownAndMove);
+		draggbleFigure.addEventListener('mouseup', figureMouseUp);
 	};
 	
-	let mouseMoveFigure = (event) => {
-
+	let figureMouseDownAndMove = (event) => {
 		let rotate = draggbleFigure.getAttribute('transform');
 		let angle, rotateX, rotateY;
 		
 		if (rotate) {
 			angle = +rotate.split('(')[1].split(',')[0];
 			({ rotateX, rotateY } = calculateCenterCoordinates());
-			console.log(rotateX);
-			console.log(rotateY);
 		}
 		
-		console.log('event.offsetX - shiftX ' + (event.offsetX - shiftX));
-		console.log('event.offsetY - shiftY ' + (event.offsetY - shiftY));
+		draggbleFigure.setAttribute('x', ~~(event.offsetX - shiftX));
+		draggbleFigure.setAttribute('y', ~~(event.offsetY - shiftY));
 		
-		draggbleFigure.setAttribute('x', event.offsetX - shiftX);
-		draggbleFigure.setAttribute('y', event.offsetY - shiftY);
-		
-		if (rotate)
+		if (rotate) {
 			draggbleFigure.setAttribute('transform', `rotate(${angle}, ${rotateX}, ${rotateY})`);
+		}
 		
 		draggbleFigure.setAttribute('filter', 'drop-shadow(5px 5px 5px #aaaaaa)');
 		rotateArrow.setAttribute('display', 'none');
 		cornersDisplayNone();
 	}	
 	
-	function mouseUpFigure(event) {
-
-		svg.removeEventListener('mousemove', mouseMoveFigure);
-		draggbleFigure.removeEventListener('mouseup', mouseUpFigure);
+	let figureMouseUp = (event) => {
+		svg.removeEventListener('mousemove', figureMouseDownAndMove);
+		draggbleFigure.removeEventListener('mouseup', figureMouseUp);
 		draggbleFigure.removeAttribute('filter');
 		
-		draggbleFigure = null;		
-		cornersMove(event);
+		// draggbleFigure = null;
+		cornersMove();
 		cornersDisplayBlock();
-		moveRotateArrow(event);			
+		moveRotateArrow();			
 		
 		rotateArrow.setAttribute('display', 'block');
 	}
+	
+	let startRotationX;
+	let startRotationY;
+	let startRotationAngle = 0;
+	
+	let rotateArrowMouseDown = (event) => {
+		let rotateFigure = draggbleFigure.cloneNode(true);
+		rotateFigure.setAttribute('id', 'id-rotate-figure');
+		rotateFigure.setAttribute('fill', 'transparent');
+		rotateFigure.setAttribute('stroke', '#29b6f2');
+		rotateFigure.setAttribute('stroke-dasharray', '3');
+		svg.appendChild(rotateFigure);
+		
+		cornersDisplayNone();
+		
+		let rotate = draggbleFigure.getAttribute('transform');
+		
+		if (rotate) {
+			startRotationAngle = +rotate.split('(')[1].split(',')[0];
+		}
+		
+		startRotationX = event.offsetX;
+		startRotationY = event.offsetY;
+		
+		svg.addEventListener('mousemove', rotateArrowMouseDownAndMove);
+		svg.addEventListener('mouseup', rotateArrowMouseUp);
+	};
+	
+	let angleBetweenVectors = (coordVector1_b, coordVector1_e, coordVector2_b, coordVector2_e) => {
+		let vector1 = {x: coordVector1_e.x - coordVector1_b.x, y: coordVector1_e.y - coordVector1_b.y};
+		let vector2 = {x: coordVector2_e.x - coordVector2_b.x, y: coordVector2_e.y - coordVector2_b.y};
+		let angleInRadians = Math.atan2(vector2.y, vector2.x) - Math.atan2(vector1.y, vector1.x);
+		let angleInDegrees = (180 / Math.PI) * angleInRadians;
+		angleInDegrees += startRotationAngle;
+		
+		if (angleInDegrees < 0) {
+			angleInDegrees += 360;
+		}
+		
+		return ~~angleInDegrees;
+	};
+	
+	let rotateArrowMouseDownAndMove = (event) => {
+		let rotateFigure = document.getElementById('id-rotate-figure');
+		let rotate = draggbleFigure.getAttribute('transform');
+		let { rotateX, rotateY } = calculateCenterCoordinates();
+		let angle = angleBetweenVectors({ x: rotateX, y: rotateY }, { x: startRotationX, y: startRotationY }, { x: rotateX, y: rotateY }, { x: event.offsetX, y: event.offsetY });
+		
+		rotateFigure.setAttribute('transform', `rotate(${angle}, ${rotateX}, ${rotateY})`);
+	};	
+	
+	let rotateArrowMouseUp = (event) => {
+		let newTransform = document.getElementById('id-rotate-figure').getAttribute('transform');
+		
+		draggbleFigure.setAttribute('transform', newTransform);
+		document.getElementById('id-rotate-figure').remove();
+		
+		cornersMove();
+		cornersDisplayBlock();
+		moveRotateArrow();	
+		
+		svg.removeEventListener('mousemove', rotateArrowMouseDownAndMove);
+		svg.removeEventListener('mouseup', rotateArrowMouseUp);
+	};
+	
+	rotateArrow.addEventListener('mousedown', rotateArrowMouseDown);
+	
+	let startCornerX;
+	let startCornerY;
+	
+	let cornerMouseDown = (event) => {
+		let corner = event.currentTarget;
+		let startCornerX = corner.getAttribute('x');
+		let startCornerY = corner.getAttribute('y');
+		
+		rotateArrow.setAttribute('display', 'none');
+		
+		svg.addEventListener('mousemove', cornerMouseDownAndMove);
+		svg.addEventListener('mouseup', cornerMouseUp);		
+	};
+	
+	let cornerMouseDownAndMove = (event) => {
+		let width = draggbleFigure.getAttribute('width');
+		let height = draggbleFigure.getAttribute('heigth');
+		let angle = angleBetweenVectors({ x: rotateX, y: rotateY }, { x: startRotationX, y: startRotationY }, { x: rotateX, y: rotateY }, { x: event.offsetX, y: event.offsetY });
+		
+		rotateFigure.setAttribute('transform', `rotate(${angle}, ${rotateX}, ${rotateY})`);
+	};		
+	
+	let cornerMouseUp = (event) => {
+		
+		
+		rotateArrow.setAttribute('display', 'block');
+		
+		svg.removeEventListener('mousemove', cornerMouseDownAndMove);
+		svg.removeEventListener('mouseup', cornerMouseUp);
+	};
 	
 	function draw() {
 		
@@ -206,5 +301,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	}
 	
+	createCorners();
 	//inputImage.addEventListener('change', changeInput);
 });	
