@@ -263,38 +263,30 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 	let startCornerX;
 	let startCornerY;
-	let shiftCornerX;
-	let shiftCornerY;
 	let currentCorner;
+	
+	let calculateCorderCoordinates = () => {
+		let angleInRadians;
+		let rotate = draggbleFigure.getAttribute('transform');
+		
+		if (rotate) {
+			let angle = +rotate.split('(')[1].split(',')[0];
+			angleInRadians = angle * Math.PI / 180;
+		}
+		
+		let x = +currentCorner.getAttribute('cx');
+		let y = +currentCorner.getAttribute('cy');
+		let { rotateX, rotateY } = calculateCenterCoordinates();
+		let newX = rotateX + (x - rotateX) * Math.cos(angleInRadians) - (y - rotateY) * Math.sin(angleInRadians);
+		let newY = rotateY + (x - rotateX) * Math.sin(angleInRadians) + (y - rotateY) * Math.cos(angleInRadians);		
+		
+		return { startCornerX: newX, startCornerY: newY };
+	};	
 	
 	let cornerMouseDown = (event) => {
 		currentCorner = event.currentTarget;
-		// let rotate = currentCorner.getAttribute('transform');
+		({startCornerX, startCornerY} = calculateCorderCoordinates(currentCorner));
 		
-		// if (rotate) {
-			// currentCorner.removeAttribute('transform');
-		// }
-		
-		// shiftCornerX = ~~(event.clientX - currentCorner.getBoundingClientRect().x);
-		// shiftCornerY = ~~(event.clientY - currentCorner.getBoundingClientRect().y);
-		
-		// if (rotate) {
-			// draggbleFigure.setAttribute('transform', rotate);
-		// }
-	
-		// shiftCornerX = ~~(event.clientX - currentCorner.getBoundingClientRect().x);
-		// shiftCornerY = ~~(event.clientY - currentCorner.getBoundingClientRect().y);
-		
-		// startCornerX = ~~(event.offsetX - shiftCornerX + 6);
-		// startCornerY = ~~(event.offsetY - shiftCornerY + 5);
-		
-		console.log('clientX ' + event.clientX);
-		console.log('clientY ' + event.clientY);		
-		console.log('offsetX ' + event.offsetX);
-		console.log('offsetY ' + event.offsetY);
-		console.log('bcrX ' + currentCorner.getBoundingClientRect().x);
-		console.log('bcrY ' + currentCorner.getBoundingClientRect().y);		
-
 		rotateArrow.setAttribute('display', 'none');
 		
 		cornersDisplayNoneBesides(currentCorner);
@@ -304,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 	let cornerMouseDownAndMove = (event) => {
 		let width = +draggbleFigure.getAttribute('width');
-		let height = +draggbleFigure.getAttribute('heigth');
+		let height = +draggbleFigure.getAttribute('height');
 		let x = +draggbleFigure.getAttribute('x');
 		let y = +draggbleFigure.getAttribute('y');		
 		
@@ -313,16 +305,21 @@ document.addEventListener('DOMContentLoaded', function () {
 		let delta = 0;
 		
 		if (currentCorner.id == 'nw-resize') {
-			// let width = +draggbleFigure.getAttribute('width');
-			// let height = +draggbleFigure.getAttribute('height');
-			// draggbleFigure.setAttribute('width', width + 50);
-			// draggbleFigure.setAttribute('height', height + 50);
 			if (startCornerX != currentX) {
 				delta = -1 * (currentX - startCornerX);
 			}
-			} else if (currentCorner.id == 'ne-resize') {
-			} else if (currentCorner.id == 'se-resize') {
-			} else if (currentCorner.id == 'sw-resize') {
+		} else if (currentCorner.id == 'ne-resize') {
+			if (startCornerY != currentY) {
+				delta = -1 * (currentY - startCornerY);
+			}		
+		} else if (currentCorner.id == 'se-resize') {
+			if (startCornerX != currentX) {
+				delta = -1 * (currentX - startCornerX);
+			}			
+		} else if (currentCorner.id == 'sw-resize') {
+			if (startCornerX != currentX) {
+				delta = -1 * (currentX - startCornerX);
+			}			
 		}
 		draggbleFigure.setAttribute('x', x + delta);
 		draggbleFigure.setAttribute('y', y + delta);
@@ -332,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	};		
 	
 	let cornerMouseUp = (event) => {
-		
+	
 		cornersDisplayBlock();
 		rotateArrow.setAttribute('display', 'block');
 		
@@ -358,4 +355,4 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 	createCorners();
 	//inputImage.addEventListener('change', changeInput);
-});	
+	});		
