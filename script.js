@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			corner.setAttribute('r', '5');
 			corner.setAttribute('fill', '#29b6f2');
 			corner.setAttribute('display', 'none');
-			corner.addEventListener('mousedown', cornerMouseDown);
+			corner.addEventListener('pointerdown', cornerMouseDown);
 			corners[resizes[i]] = corner;
 			svg.appendChild(corner);
 		}
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		// newRect.setAttribute('transform', `rotate(${getRandomInt(361)}, 200, 200)`);
 		newRect.setAttribute('transform', `rotate(0, 200, 200)`);
 
-		newRect.addEventListener('mousedown', figureMouseDown);
+		newRect.addEventListener('pointerdown', figureMouseDown);
 		svg.appendChild(newRect);
 	};
 
@@ -157,8 +157,8 @@ document.addEventListener('DOMContentLoaded', function () {
 		cornersAndRotateArrowToForeground();
 		moveRotateArrow();
 
-		svg.addEventListener('mousemove', figureMouseDownAndMove);
-		draggbleFigure.addEventListener('mouseup', figureMouseUp);
+		svg.addEventListener('pointermove', figureMouseDownAndMove);
+		draggbleFigure.addEventListener('pointerup', figureMouseUp);
 	};
 
 	let figureMouseDownAndMove = (event) => {
@@ -183,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 
 	let figureMouseUp = () => {
-		svg.removeEventListener('mousemove', figureMouseDownAndMove);
-		draggbleFigure.removeEventListener('mouseup', figureMouseUp);
+		svg.removeEventListener('pointermove', figureMouseDownAndMove);
+		draggbleFigure.removeEventListener('pointerup', figureMouseUp);
 		draggbleFigure.removeAttribute('filter');
 
 		cornersMove();
@@ -216,8 +216,8 @@ document.addEventListener('DOMContentLoaded', function () {
 		startRotationX = event.offsetX;
 		startRotationY = event.offsetY;
 
-		svg.addEventListener('mousemove', rotateArrowMouseDownAndMove);
-		svg.addEventListener('mouseup', rotateArrowMouseUp);
+		svg.addEventListener('pointermove', rotateArrowMouseDownAndMove);
+		svg.addEventListener('pointerup', rotateArrowMouseUp);
 	};
 
 	let angleBetweenVectors = (coordVector1_b, coordVector1_e, coordVector2_b, coordVector2_e) => {
@@ -236,7 +236,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	let rotateArrowMouseDownAndMove = (event) => {
 		let rotateFigure = document.getElementById('id-rotate-figure');
-		let rotate = draggbleFigure.getAttribute('transform');
 		let { rotateX, rotateY } = calculateCenterCoordinates();
 		let angle = angleBetweenVectors({ x: rotateX, y: rotateY }, { x: startRotationX, y: startRotationY }, { x: rotateX, y: rotateY }, { x: event.offsetX, y: event.offsetY });
 
@@ -253,17 +252,17 @@ document.addEventListener('DOMContentLoaded', function () {
 		cornersDisplayBlock();
 		moveRotateArrow();
 
-		svg.removeEventListener('mousemove', rotateArrowMouseDownAndMove);
-		svg.removeEventListener('mouseup', rotateArrowMouseUp);
+		svg.removeEventListener('pointermove', rotateArrowMouseDownAndMove);
+		svg.removeEventListener('pointerup', rotateArrowMouseUp);
 	};
 
-	rotateArrow.addEventListener('mousedown', rotateArrowMouseDown);
+	rotateArrow.addEventListener('pointerdown', rotateArrowMouseDown);
 
-	let startCornerX;
-	let startCornerY;
 	let currentCorner;
 	let lineA;
 	let lineB;
+	let cornerShiftX;
+	let cornerShiftY;
 
 	let calculateCorderCoordinates = (corner) => {
 		let angleInRadians;
@@ -283,36 +282,54 @@ document.addEventListener('DOMContentLoaded', function () {
 		return { x: newX, y: newY };
 	};
 
-	let cornerMouseDown = (event) => {
-		currentCorner = event.currentTarget;
-		// ({ startCornerX, startCornerY } = calculateCorderCoordinates(currentCorner));
-		lineB = calculateCorderCoordinates(currentCorner);
+	let getCoordinatesLineA = (corner) => {
 		let cornerA;
 
-		if (currentCorner.id == 'nw-resize') {
+		if (corner.id == 'nw-resize') {
 			cornerA = calculateCorderCoordinates(corners['sw-resize']);
-		} else if (currentCorner.id == 'ne-resize') {
+		} else if (corner.id == 'ne-resize') {
 			cornerA = calculateCorderCoordinates(corners['nw-resize']);
-		} else if (currentCorner.id == 'se-resize') {
+		} else if (corner.id == 'se-resize') {
 			cornerA = calculateCorderCoordinates(corners['sw-resize']);
-		} else if (currentCorner.id == 'sw-resize') {
+		} else if (corner.id == 'sw-resize') {
 			cornerA = calculateCorderCoordinates(corners['nw-resize']);
 		}
-		lineA = { x: cornerA.x, y: cornerA.y };
 
-		// console.log(lineA);
-		// console.log(lineB);
+		return { x: cornerA.x, y: cornerA.y };
+	};
+
+	let cornerMouseDown = (event) => {
+		currentCorner = event.currentTarget;
+		lineB = calculateCorderCoordinates(currentCorner);
+		lineA = getCoordinatesLineA(currentCorner);
+
+		cornerShiftX = lineB.x - event.offsetX;
+		cornerShiftY = lineB.y - event.offsetY;
+
+		console.log('Start offsetX ' + event.offsetX);
+		console.log('Start offsetY ' + event.offsetY);
+		// console.log('Start clientX ' + event.clientX);
+		// console.log('Start clientY ' + event.clientY);
+		console.log('cornerShiftX ' + cornerShiftX);
+		console.log('cornerShiftY ' + cornerShiftY);
 
 		cornersDisplayNoneBesides(currentCorner);
 		rotateArrow.setAttribute('display', 'none');
 
-		svg.addEventListener('mousemove', cornerMouseDownAndMove);
-		svg.addEventListener('mouseup', cornerMouseUp);
+		svg.addEventListener('pointermove', cornerMouseDownAndMove);
+		svg.addEventListener('pointerup', cornerMouseUp);
 	};
 
 	let pointRelativeToLine = (a, b, c) => {
-		let p = c.x * (b.y - a.y) - c.y * (b.x - a.x) + b.x * a.y - a.x * b.y;
+		let p = c.x * (b.y - a.y) - c.y * (b.x - a.x) + a.y * b.x - a.x * b.y;
 		return p;
+	};
+
+	let distanceFromPointToLine = (a, b, c) => {
+		let p = Math.abs(pointRelativeToLine(a, b, c));
+		let base = Math.sqrt((b.y - a.y) ** 2 + (b.x - a.x) ** 2);
+
+		return p / base;
 	};
 
 	let cornerMouseDownAndMove = (event) => {
@@ -321,54 +338,90 @@ document.addEventListener('DOMContentLoaded', function () {
 		let x = +draggbleFigure.getAttribute('x');
 		let y = +draggbleFigure.getAttribute('y');
 
-		let currentX = event.offsetX;
-		let currentY = event.offsetY;
-		let delta = 0;
+		let currentX = event.offsetX + cornerShiftX;
+		let currentY = event.offsetY + cornerShiftY;
 
-		let p = pointRelativeToLine(lineA, lineB, { x: currentY, y: currentY });
+		console.log('Move offsetX ' + event.offsetX);
+		console.log('Move offsetY ' + event.offsetY);
+		// console.log('Move clientX ' + event.clientX);
+		// console.log('Move clientY ' + event.clientY);
+
+		// let currentX = lineB.x;
+		// let currentY = lineB.y;
+
+		let p = pointRelativeToLine(lineA, lineB, { x: currentX, y: currentY });
+		let distance = distanceFromPointToLine(lineA, lineB, { x: currentX, y: currentY });
 
 		if (currentCorner.id == 'nw-resize') {
-			if (p != 0) {
-				delta = -1 * (currentX - lineB.x);
-			}
+			distance = p < 0 ? -1 * distance : distance;
+			x -= distance;
+			y -= distance;
 		} else if (currentCorner.id == 'ne-resize') {
-			if (p != 0) {
-				delta = -1 * (currentY - lineB.y);
-				y -=  delta;
-				width += delta;
-				height += delta;
-			}
+			distance = p < 0 ? -1 * distance : distance;
+			y -= distance;
 		} else if (currentCorner.id == 'se-resize') {
-			if (p != 0) {
-				delta = 1 * (currentY - lineB.y);
-			}
+			distance = p < 0 ? distance : -1 * distance;
 		} else if (currentCorner.id == 'sw-resize') {
-			if (p != 0) {
-				delta = -1 * (currentX - lineB.x);
-			}
+			distance = p < 0 ? distance : -1 * distance;
+			x -= distance;
 		}
-		// console.log(delta);
+
+		// if (currentCorner.id == 'nw-resize') {
+		// 	distance = -1 * (currentX - lineB.x);
+		// } else if (currentCorner.id == 'ne-resize') {
+		// 	distance = -1 * (currentY - lineB.y);
+		// 	y -= distance;
+		// } else if (currentCorner.id == 'se-resize') {
+		// 	distance = 1 * (currentY - lineB.y);
+		// } else if (currentCorner.id == 'sw-resize') {
+		// 	distance = -1 * (currentX - lineB.x);
+		// }
+
+		console.log('distance ' + distance);
+
+		// let rotate = draggbleFigure.getAttribute('transform');
+
+		// if (rotate) {
+		// 	let angle = +rotate.split('(')[1].split(',')[0];
+		// 	delta = angle >= 180 ? -1 * delta: delta;
+		// }
+
+		width += distance;
+		height += distance;
+		width = width < 0 ? 0 : width;
+		height = height < 0 ? 0 : height;
+
 		draggbleFigure.setAttribute('x', x);
 		draggbleFigure.setAttribute('y', y);
 		draggbleFigure.setAttribute('width', width);
 		draggbleFigure.setAttribute('height', height);
 
+		cornersMove();
+		lineB = calculateCorderCoordinates(currentCorner);
+		lineA = getCoordinatesLineA(currentCorner);
 	};
 
-	let cornerMouseUp = (event) => {
-
-		cornersMove();
+	let cornerMouseUp = () => {
 		cornersDisplayBlock();
 		moveRotateArrow();
 		rotateArrow.setAttribute('display', 'block');
 
-		svg.removeEventListener('mousemove', cornerMouseDownAndMove);
-		svg.removeEventListener('mouseup', cornerMouseUp);
+		svg.removeEventListener('pointermove', cornerMouseDownAndMove);
+		svg.removeEventListener('pointerup', cornerMouseUp);
 	};
 
 	function draw() {
 
 	}
+
+	let addDot = (cx, cy, color = 'red') => {
+		let corner = document.createElementNS(svgns, 'circle');
+		corner.setAttribute('cx', cx);
+		corner.setAttribute('cy', cy);
+		corner.setAttribute('r', '2');
+		corner.setAttribute('fill', color);
+		svg.appendChild(corner);
+	};
 
 	function changeInput() {
 		let image = new Image();
