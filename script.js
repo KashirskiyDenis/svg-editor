@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			corner.setAttribute('r', '5');
 			corner.setAttribute('fill', '#29b6f2');
 			corner.setAttribute('display', 'none');
+			corner.setAttribute('opacity', '0.5');
 			corner.addEventListener('pointerdown', cornerMouseDown);
 			corners[resizes[i]] = corner;
 			svg.appendChild(corner);
@@ -119,11 +120,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		newRect.setAttribute('fill', '#d5e8d4');
 		// newRect.setAttribute('stroke', '#000000');
 		// newRect.setAttribute('transform', 'translate(0.5,0.5)');
-		// newRect.setAttribute('transform', `rotate(${getRandomInt(361)}, 200, 200)`);
-		newRect.setAttribute('transform', `rotate(0, 200, 200)`);
+		newRect.setAttribute('transform', `rotate(${getRandomInt(361)}, 200, 200)`);
+		// newRect.setAttribute('transform', `rotate(15, 200, 200)`);
 
 		newRect.addEventListener('pointerdown', figureMouseDown);
-		svg.appendChild(newRect);
+		svg.appendChild(newRect);	
 	};
 
 	inputImage.addEventListener('click', addFigure);
@@ -134,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function () {
 	let draggbleFigure = null;
 	let shiftX = null;
 	let shiftY = null;
-	let figureMoveFlag = false;
 
 	let figureMouseDown = (event) => {
 		draggbleFigure = event.currentTarget;
@@ -258,11 +258,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	rotateArrow.addEventListener('pointerdown', rotateArrowMouseDown);
 
+	let lineA, lineB;
 	let currentCorner;
-	let lineA;
-	let lineB;
 	let cornerShiftX;
 	let cornerShiftY;
+	let startX, startY;
+	let startWidth, startHeight;
 
 	let calculateCorderCoordinates = (corner) => {
 		let angleInRadians;
@@ -306,12 +307,10 @@ document.addEventListener('DOMContentLoaded', function () {
 		cornerShiftX = lineB.x - event.offsetX;
 		cornerShiftY = lineB.y - event.offsetY;
 
-		console.log('Start offsetX ' + event.offsetX);
-		console.log('Start offsetY ' + event.offsetY);
-		// console.log('Start clientX ' + event.clientX);
-		// console.log('Start clientY ' + event.clientY);
-		console.log('cornerShiftX ' + cornerShiftX);
-		console.log('cornerShiftY ' + cornerShiftY);
+		startWidth = +draggbleFigure.getAttribute('width');
+		startHeight = +draggbleFigure.getAttribute('height');
+		startX = +draggbleFigure.getAttribute('x');
+		startY = +draggbleFigure.getAttribute('y');
 
 		cornersDisplayNoneBesides(currentCorner);
 		rotateArrow.setAttribute('display', 'none');
@@ -333,72 +332,43 @@ document.addEventListener('DOMContentLoaded', function () {
 	};
 
 	let cornerMouseDownAndMove = (event) => {
-		let width = +draggbleFigure.getAttribute('width');
-		let height = +draggbleFigure.getAttribute('height');
-		let x = +draggbleFigure.getAttribute('x');
-		let y = +draggbleFigure.getAttribute('y');
-
+		let newWidth = startWidth;
+		let newHeight = startHeight;
+		let newX = startX;
+		let newY = startY;
 		let currentX = event.offsetX + cornerShiftX;
 		let currentY = event.offsetY + cornerShiftY;
-
-		console.log('Move offsetX ' + event.offsetX);
-		console.log('Move offsetY ' + event.offsetY);
-		// console.log('Move clientX ' + event.clientX);
-		// console.log('Move clientY ' + event.clientY);
-
-		// let currentX = lineB.x;
-		// let currentY = lineB.y;
 
 		let p = pointRelativeToLine(lineA, lineB, { x: currentX, y: currentY });
 		let distance = distanceFromPointToLine(lineA, lineB, { x: currentX, y: currentY });
 
 		if (currentCorner.id == 'nw-resize') {
 			distance = p < 0 ? -1 * distance : distance;
-			x -= distance;
-			y -= distance;
+			newX -= distance;
+			newY -= distance;
 		} else if (currentCorner.id == 'ne-resize') {
 			distance = p < 0 ? -1 * distance : distance;
-			y -= distance;
+			newY -= distance;
 		} else if (currentCorner.id == 'se-resize') {
 			distance = p < 0 ? distance : -1 * distance;
 		} else if (currentCorner.id == 'sw-resize') {
 			distance = p < 0 ? distance : -1 * distance;
-			x -= distance;
+			newX -= distance;
 		}
 
-		// if (currentCorner.id == 'nw-resize') {
-		// 	distance = -1 * (currentX - lineB.x);
-		// } else if (currentCorner.id == 'ne-resize') {
-		// 	distance = -1 * (currentY - lineB.y);
-		// 	y -= distance;
-		// } else if (currentCorner.id == 'se-resize') {
-		// 	distance = 1 * (currentY - lineB.y);
-		// } else if (currentCorner.id == 'sw-resize') {
-		// 	distance = -1 * (currentX - lineB.x);
-		// }
+		newWidth += distance;
+		newHeight += distance;
+		newWidth = newWidth < 0 ? 1 : newWidth;
+		newHeight = newHeight < 0 ? 1 : newHeight;
 
-		console.log('distance ' + distance);
-
-		// let rotate = draggbleFigure.getAttribute('transform');
-
-		// if (rotate) {
-		// 	let angle = +rotate.split('(')[1].split(',')[0];
-		// 	delta = angle >= 180 ? -1 * delta: delta;
-		// }
-
-		width += distance;
-		height += distance;
-		width = width < 0 ? 0 : width;
-		height = height < 0 ? 0 : height;
-
-		draggbleFigure.setAttribute('x', x);
-		draggbleFigure.setAttribute('y', y);
-		draggbleFigure.setAttribute('width', width);
-		draggbleFigure.setAttribute('height', height);
+		draggbleFigure.setAttribute('x', newX);
+		draggbleFigure.setAttribute('y', newY);
+		draggbleFigure.setAttribute('width', newWidth);
+		draggbleFigure.setAttribute('height', newHeight);
 
 		cornersMove();
-		lineB = calculateCorderCoordinates(currentCorner);
-		lineA = getCoordinatesLineA(currentCorner);
+		// lineB = calculateCorderCoordinates(currentCorner);
+		// lineA = getCoordinatesLineA(currentCorner);
 	};
 
 	let cornerMouseUp = () => {
@@ -413,15 +383,6 @@ document.addEventListener('DOMContentLoaded', function () {
 	function draw() {
 
 	}
-
-	let addDot = (cx, cy, color = 'red') => {
-		let corner = document.createElementNS(svgns, 'circle');
-		corner.setAttribute('cx', cx);
-		corner.setAttribute('cy', cy);
-		corner.setAttribute('r', '2');
-		corner.setAttribute('fill', color);
-		svg.appendChild(corner);
-	};
 
 	function changeInput() {
 		let image = new Image();
