@@ -63,6 +63,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		let rotate = draggbleFigure.getAttribute('transform');
 		for (let i = 0; i < 4; i++) {
 			let corner = corners[resizes[i]];
+			if (corner.getAttribute('transform')) {
+				corner.removeAttribute('transform');
+			}
 			if (rotate) {
 				corner.setAttribute('transform', rotate);
 			}
@@ -89,40 +92,54 @@ document.addEventListener('DOMContentLoaded', function () {
 		rotateArrow.setAttribute('y', y);
 		if (rotate) {
 			rotateArrow.setAttribute('transform', rotate);
+		} else {
+			if (rotateArrow.getAttribute('transform')) {
+				rotateArrow.removeAttribute('transform');
+			}
 		}
 	};
 
 	let calculateCenterCoordinates = () => {
-		let width = +draggbleFigure.getAttribute('width');
-		let height = +draggbleFigure.getAttribute('height');
 		let x = +draggbleFigure.getAttribute('x');
 		let y = +draggbleFigure.getAttribute('y');
+		let width = +draggbleFigure.getAttribute('width');
+		let height = +draggbleFigure.getAttribute('height');
 		let neighbors = [
 			{ dx: x, dy: y },
 			{ dx: x + width, dy: y },
 			{ dx: x + width, dy: y + height },
 			{ dx: x, dy: y + height },
 		];
-		let newX = ~~(neighbors[0].dx + neighbors[1].dx) / 2;
-		let newY = ~~(neighbors[1].dy + neighbors[2].dy) / 2;
+		let newX = (neighbors[0].dx + neighbors[1].dx + neighbors[2].dx + neighbors[3].dx) / 4;
+		let newY = (neighbors[0].dy + neighbors[1].dy + neighbors[2].dy + neighbors[3].dy) / 4;
 
 		return { rotateX: newX, rotateY: newY };
+	};
+
+	let changeRotateCoordinates = () => {
+		let rotate = draggbleFigure.getAttribute('transform');
+
+		if (rotate) {
+			let angle = +rotate.split('(')[1].split(',')[0];
+			let { rotateX, rotateY } = calculateCenterCoordinates();
+			draggbleFigure.setAttribute('transform', `rotate(${angle}, ${rotateX}, ${rotateY})`);
+		}
 	};
 
 	let addFigure = () => {
 		let newRect = document.createElementNS(svgns, 'rect');
 
 		newRect.setAttribute('id', 'react-id');
-		newRect.setAttribute('x', '150');
-		newRect.setAttribute('y', '150');
+		newRect.setAttribute('x', '50');
+		newRect.setAttribute('y', '50');
 		newRect.setAttribute('width', '100');
 		newRect.setAttribute('height', '100');
 		newRect.setAttribute('fill', '#d5e8d4');
+		newRect.setAttribute('opacity', '0.8')
 		// newRect.setAttribute('stroke', '#000000');
 		// newRect.setAttribute('transform', 'translate(0.5,0.5)');
 		// newRect.setAttribute('transform', `rotate(${getRandomInt(361)}, 200, 200)`);
-		newRect.setAttribute('transform', `rotate(15, 200, 200)`);
-
+		// newRect.setAttribute('transform', `rotate(15, 100, 100)`);
 		newRect.addEventListener('pointerdown', figureMouseDown);
 		svg.appendChild(newRect);
 	};
@@ -135,16 +152,6 @@ document.addEventListener('DOMContentLoaded', function () {
 	let draggbleFigure = null;
 	let shiftX = null;
 	let shiftY = null;
-
-	let changeRotateCoordinates = () => {
-		let rotate = draggbleFigure.getAttribute('transform');
-
-		if (rotate) {
-			let angle = +rotate.split('(')[1].split(',')[0];
-			let { rotateX, rotateY } = calculateCenterCoordinates();
-			draggbleFigure.setAttribute('transform', `rotate(${angle}, ${rotateX}, ${rotateY})`);
-		}
-	};
 
 	let figureMouseDown = (event) => {
 		draggbleFigure = event.currentTarget;
@@ -172,21 +179,21 @@ document.addEventListener('DOMContentLoaded', function () {
 	};
 
 	let figureMouseDownAndMove = (event) => {
-		draggbleFigure.setAttribute('x', ~~(event.offsetX - shiftX));
-		draggbleFigure.setAttribute('y', ~~(event.offsetY - shiftY));
+		draggbleFigure.setAttribute('x', (event.offsetX - shiftX));
+		draggbleFigure.setAttribute('y', (event.offsetY - shiftY));
 		draggbleFigure.setAttribute('filter', 'drop-shadow(5px 5px 5px #aaaaaa)');
 
 		changeRotateCoordinates();
-		
+
 		rotateArrow.setAttribute('display', 'none');
 		cornersDisplayNone();
 	}
-	
+
 	let figureMouseUp = () => {
 		svg.removeEventListener('pointermove', figureMouseDownAndMove);
 		draggbleFigure.removeEventListener('pointerup', figureMouseUp);
 		draggbleFigure.removeAttribute('filter');
-	
+
 		cornersMove();
 		cornersDisplayBlock();
 		moveRotateArrow();
@@ -204,7 +211,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		rotateFigure.setAttribute('y', draggbleFigure.getAttribute('y'));
 		rotateFigure.setAttribute('width', draggbleFigure.getAttribute('width'));
 		rotateFigure.setAttribute('height', draggbleFigure.getAttribute('height'));
-		rotateFigure.setAttribute('transform', draggbleFigure.getAttribute('transform'));
+		if (draggbleFigure.getAttribute('transform')) {
+			rotateFigure.setAttribute('transform', draggbleFigure.getAttribute('transform'));
+		}
 		rotateFigure.setAttribute('fill', 'transparent');
 		rotateFigure.setAttribute('stroke', '#29b6f2');
 		rotateFigure.setAttribute('stroke-dasharray', '3');
@@ -273,8 +282,8 @@ document.addEventListener('DOMContentLoaded', function () {
 	let startX, startY;
 	let startWidth, startHeight;
 
-	let calculateCornerCoordinates = (corner) => {
-		let angleInRadians;
+	let getCenterCornerCoordinates = (corner) => {
+		let angleInRadians = 0;
 		let rotate = draggbleFigure.getAttribute('transform');
 
 		if (rotate) {
@@ -295,13 +304,13 @@ document.addEventListener('DOMContentLoaded', function () {
 		let cornerA;
 
 		if (corner.id == 'nw-resize') {
-			cornerA = calculateCornerCoordinates(corners['sw-resize']);
+			cornerA = getCenterCornerCoordinates(corners['sw-resize']);
 		} else if (corner.id == 'ne-resize') {
-			cornerA = calculateCornerCoordinates(corners['nw-resize']);
+			cornerA = getCenterCornerCoordinates(corners['nw-resize']);
 		} else if (corner.id == 'se-resize') {
-			cornerA = calculateCornerCoordinates(corners['sw-resize']);
+			cornerA = getCenterCornerCoordinates(corners['sw-resize']);
 		} else if (corner.id == 'sw-resize') {
-			cornerA = calculateCornerCoordinates(corners['nw-resize']);
+			cornerA = getCenterCornerCoordinates(corners['nw-resize']);
 		}
 
 		return { x: cornerA.x, y: cornerA.y };
@@ -309,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	let cornerMouseDown = (event) => {
 		currentCorner = event.currentTarget;
-		lineB = calculateCornerCoordinates(currentCorner);
+		lineB = getCenterCornerCoordinates(currentCorner);
 		lineA = getCoordinatesLineA(currentCorner);
 
 		cornerShiftX = lineB.x - event.offsetX;
@@ -319,9 +328,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		startHeight = +draggbleFigure.getAttribute('height');
 		startX = +draggbleFigure.getAttribute('x');
 		startY = +draggbleFigure.getAttribute('y');
-
-		let { rotateX, rotateY } = calculateCenterCoordinates();
-		addDot(rotateX, rotateY);
 
 		cornersDisplayNoneBesides(currentCorner);
 		rotateArrow.setAttribute('display', 'none');
@@ -357,7 +363,6 @@ document.addEventListener('DOMContentLoaded', function () {
 			distance = p < 0 ? -1 * distance : distance;
 			newX -= distance;
 			newY -= distance;
-
 		} else if (currentCorner.id == 'ne-resize') {
 			distance = p < 0 ? -1 * distance : distance;
 			newY -= distance;
@@ -382,14 +387,47 @@ document.addEventListener('DOMContentLoaded', function () {
 	};
 
 	let cornerMouseUp = () => {
-		// changeRotateCoordinates();
-
-		cornersDisplayBlock();
+		repositionfigureAfterScale();
 		moveRotateArrow();
+		cornersDisplayBlock();
 		rotateArrow.setAttribute('display', 'block');
 
 		svg.removeEventListener('pointermove', cornerMouseDownAndMove);
 		svg.removeEventListener('pointerup', cornerMouseUp);
+	};
+
+	let repositionfigureAfterScale = () => {
+		let coord = [];
+		let angleInRadians;
+		let rotate = draggbleFigure.getAttribute('transform');
+		let rotateX, rotateY;
+		let newRotateX, newRotateY;
+
+		if (rotate) {
+			let angle = +rotate.split('(')[1].split(',')[0];
+			angleInRadians = angle * Math.PI / 180;
+			rotateX = +rotate.split(', ')[1];
+			rotateY = +rotate.split(', ')[2].slice(0, -1);
+
+			for (let i = 0; i < 4; i++) {
+				coord[i] = {
+					cx: corners[resizes[i]].getAttribute('cx'),
+					cy: corners[resizes[i]].getAttribute('cy'),
+				}
+				coord[i].x = rotateX + (coord[i].cx - rotateX) * Math.cos(angleInRadians) - (coord[i].cy - rotateY) * Math.sin(angleInRadians);
+				coord[i].y = rotateY + (coord[i].cx - rotateX) * Math.sin(angleInRadians) + (coord[i].cy - rotateY) * Math.cos(angleInRadians);
+			}
+			newRotateX = (coord[0].x + coord[1].x + coord[2].x + coord[3].x) / 4;
+			newRotateY = (coord[0].y + coord[1].y + coord[2].y + coord[3].y) / 4;
+
+			let delta = +draggbleFigure.getAttribute('width') / 2;
+			let x = newRotateX - delta;
+			let y = newRotateY - delta;
+
+			draggbleFigure.setAttribute('x', x);
+			draggbleFigure.setAttribute('y', y);
+			draggbleFigure.setAttribute('transform', `rotate(${angle}, ${newRotateX}, ${newRotateY})`);
+		}
 	};
 
 	function draw() {
@@ -405,12 +443,15 @@ document.addEventListener('DOMContentLoaded', function () {
 		svg.appendChild(newImage);
 	}
 
-	let addDot = (cx, cy, color = 'red') => {
+	let addDot = (cx, cy, color = 'red', transform) => {
 		let corner = document.createElementNS(svgns, 'circle');
 		corner.setAttribute('cx', cx);
 		corner.setAttribute('cy', cy);
 		corner.setAttribute('r', '2');
 		corner.setAttribute('fill', color);
+		if (transform) {
+			corner.setAttribute('transform', transform);
+		}
 		svg.appendChild(corner);
 	};
 
