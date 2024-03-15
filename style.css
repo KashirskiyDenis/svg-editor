@@ -18,3 +18,9 @@ svg {
 	height: 388px;
 	border: 1px solid #000000;
 }
+canvas {
+	border: 1px solid #000000;
+}
+rect {
+	box-shadow: 12px 12px 2px 1px rgba(0, 0, 255, .2);
+}

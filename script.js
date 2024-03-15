@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	let inputImage = document.getElementById('inputImage');
 	let svg = document.getElementById('svg');
 	let rotateArrow = document.getElementById('rotate-arrow');
+	let trash = document.getElementById('trash');
 	let corners = {};
 
 	function getRandomInt(max) {
@@ -19,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			corner.setAttribute('id', resizes[i]);
 			corner.setAttribute('cx', 0);
 			corner.setAttribute('cy', 0);
-			corner.setAttribute('r', '5');
+			corner.setAttribute('r', '8');
 			corner.setAttribute('fill', '#29b6f2');
 			corner.setAttribute('display', 'none');
 			corner.setAttribute('opacity', '0.5');
@@ -49,12 +50,13 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	};
 
-	let cornersAndRotateArrowToForeground = () => {
+	let toForeground = () => {
 		for (let i = 0; i < 4; i++) {
 			let corner = corners[resizes[i]];
 			svg.appendChild(corner);
 		}
 		svg.appendChild(rotateArrow);
+		svg.appendChild(trash);
 	}
 
 	let cornersMove = () => {
@@ -85,8 +87,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	let rotateArrowMove = () => {
 		let width = +draggbleFigure.getAttribute('width');
-		let x = +draggbleFigure.getAttribute('x') + width + 8;
-		let y = +draggbleFigure.getAttribute('y') - 24;
+		let x = +draggbleFigure.getAttribute('x') + width + 16;
+		let y = +draggbleFigure.getAttribute('y') - 32;
 		let rotate = draggbleFigure.getAttribute('transform');
 
 		rotateArrow.setAttribute('x', x);
@@ -96,6 +98,23 @@ document.addEventListener('DOMContentLoaded', function () {
 		} else {
 			if (rotateArrow.getAttribute('transform')) {
 				rotateArrow.removeAttribute('transform');
+			}
+		}
+	};
+
+	let trashMove = () => {
+		let width = +draggbleFigure.getAttribute('width');
+		let x = +draggbleFigure.getAttribute('x') + width + 16;
+		let y = +draggbleFigure.getAttribute('y');
+		let rotate = draggbleFigure.getAttribute('transform');
+
+		trash.setAttribute('x', x);
+		trash.setAttribute('y', y);
+		if (rotate) {
+			trash.setAttribute('transform', rotate);
+		} else {
+			if (trash.getAttribute('transform')) {
+				trash.removeAttribute('transform');
 			}
 		}
 	};
@@ -127,29 +146,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	};
 
-	let addFigure = () => {
-		let newRect = document.createElementNS(svgns, 'rect');
-
-		newRect.setAttribute('id', 'react-id');
-		newRect.setAttribute('x', '50');
-		newRect.setAttribute('y', '50');
-		newRect.setAttribute('width', '100');
-		newRect.setAttribute('height', '100');
-		newRect.setAttribute('fill', '#d5e8d4');
-		newRect.setAttribute('opacity', '0.8')
-		// newRect.setAttribute('stroke', '#000000');
-		// newRect.setAttribute('transform', 'translate(0.5,0.5)');
-		// newRect.setAttribute('transform', `rotate(${getRandomInt(361)}, 200, 200)`);
-		// newRect.setAttribute('transform', `rotate(15, 100, 100)`);
-		newRect.addEventListener('pointerdown', figureMouseDown);
-		svg.appendChild(newRect);
-	};
-
-	// inputImage.addEventListener('click', addFigure);
-
-	document.getElementById('saveImage').addEventListener('click', () => {
-	});
-
 	let draggbleFigure = null;
 	let shiftX = null;
 	let shiftY = null;
@@ -172,8 +168,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 
 		cornersMove();
-		cornersAndRotateArrowToForeground();
+		toForeground();
 		rotateArrowMove();
+		trashMove();
 
 		svg.addEventListener('pointermove', figureMouseDownAndMove);
 		draggbleFigure.addEventListener('pointerup', figureMouseUp);
@@ -187,6 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		changeRotateCoordinates();
 
 		rotateArrow.setAttribute('display', 'none');
+		trash.setAttribute('display', 'none');
 		cornersDisplayNone();
 	}
 
@@ -198,7 +196,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		cornersMove();
 		cornersDisplayBlock();
 		rotateArrowMove();
+		trashMove()
 		rotateArrow.setAttribute('display', 'block');
+		trash.setAttribute('display', 'block');
 	}
 
 	let startRotationX;
@@ -233,6 +233,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		startRotationX = event.offsetX;
 		startRotationY = event.offsetY;
+		// console.log('startRotationX ' + event.offsetX);
+		// console.log('startRotationY ' + event.offsetY);
 
 		svg.addEventListener('pointermove', rotateArrowMouseDownAndMove);
 		svg.addEventListener('pointerup', rotateArrowMouseUp);
@@ -257,24 +259,37 @@ document.addEventListener('DOMContentLoaded', function () {
 		let { rotateX, rotateY } = calculateCenterCoordinates();
 		let angle = angleBetweenVectors({ x: rotateX, y: rotateY }, { x: startRotationX, y: startRotationY }, { x: rotateX, y: rotateY }, { x: event.offsetX, y: event.offsetY });
 
+		// console.log(`rotate(${angle}, ${rotateX}, ${rotateY})`);
 		rotateFigure.setAttribute('transform', `rotate(${angle}, ${rotateX}, ${rotateY})`);
 	};
 
 	let rotateArrowMouseUp = () => {
 		let newTransform = document.getElementById('id-rotate-figure').getAttribute('transform');
 
-		draggbleFigure.setAttribute('transform', newTransform);
+		if (newTransform) {
+			draggbleFigure.setAttribute('transform', newTransform);
+		}
 		document.getElementById('id-rotate-figure').remove();
 
 		cornersMove();
 		cornersDisplayBlock();
 		rotateArrowMove();
+		trashMove()
 
 		svg.removeEventListener('pointermove', rotateArrowMouseDownAndMove);
 		svg.removeEventListener('pointerup', rotateArrowMouseUp);
 	};
 
 	rotateArrow.addEventListener('pointerdown', rotateArrowMouseDown);
+
+	let removeFigure = () => {
+		draggbleFigure.remove();
+		cornersDisplayNone();
+		rotateArrow.setAttribute('display', 'none');
+		trash.setAttribute('display', 'none');
+	};
+
+	trash.addEventListener('click', removeFigure);
 
 	let lineA, lineB;
 	let currentCorner;
@@ -332,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		cornersDisplayNoneBesides(currentCorner);
 		rotateArrow.setAttribute('display', 'none');
+		trash.setAttribute('display', 'none');
 
 		svg.addEventListener('pointermove', cornerMouseDownAndMove);
 		svg.addEventListener('pointerup', cornerMouseUp);
@@ -390,8 +406,10 @@ document.addEventListener('DOMContentLoaded', function () {
 	let cornerMouseUp = () => {
 		repositionfigureAfterScale();
 		rotateArrowMove();
+		trashMove();
 		cornersDisplayBlock();
 		rotateArrow.setAttribute('display', 'block');
+		trash.setAttribute('display', 'block');
 
 		svg.removeEventListener('pointermove', cornerMouseDownAndMove);
 		svg.removeEventListener('pointerup', cornerMouseUp);
@@ -431,18 +449,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	};
 
-	function draw() {
-		// console.log(this.width);
-
-		let newImage = document.createElementNS(svgns, 'image');
-		newImage.setAttribute('x', '25');
-		newImage.setAttribute('y', '25');
-		newImage.setAttribute('width', '200');
-		newImage.setAttribute('height', '200');
-		newImage.setAttribute('href', this.src);
-		newImage.addEventListener('pointerdown', figureMouseDown);
-		svg.appendChild(newImage);
-	}
+	createCorners();
 
 	let addDot = (cx, cy, color = 'red', transform) => {
 		let corner = document.createElementNS(svgns, 'circle');
@@ -456,6 +463,17 @@ document.addEventListener('DOMContentLoaded', function () {
 		svg.appendChild(corner);
 	};
 
+	function draw() {
+		let newImage = document.createElementNS(svgns, 'image');
+		newImage.setAttribute('x', '25');
+		newImage.setAttribute('y', '25');
+		newImage.setAttribute('width', '200');
+		newImage.setAttribute('height', '200');
+		newImage.setAttribute('href', this.src);
+		newImage.addEventListener('pointerdown', figureMouseDown);
+		svg.appendChild(newImage);
+	}
+
 	function changeInput() {
 		let image = new Image();
 		image.onload = draw;
@@ -464,10 +482,35 @@ document.addEventListener('DOMContentLoaded', function () {
 		};
 		if (this.files[0]) {
 			image.src = URL.createObjectURL(this.files[0]);
-			// console.log(this.files[0]);
+
+			var reader = new FileReader();
+			reader.onloadend = function () {
+				// console.log('RESULT', reader.result)
+			}
+			reader.readAsDataURL(this.files[0]);
+			console.log(this.files[0]);
 		}
 	}
 
-	createCorners();
 	inputImage.addEventListener('change', changeInput);
-});		
+
+	let addFigure = () => {
+		let newRect = document.createElementNS(svgns, 'rect');
+
+		newRect.setAttribute('id', 'react-id');
+		newRect.setAttribute('x', '50');
+		newRect.setAttribute('y', '50');
+		newRect.setAttribute('width', '150');
+		newRect.setAttribute('height', '150');
+		newRect.setAttribute('fill', '#d5e8d4');
+		newRect.setAttribute('opacity', '0.8');
+		// newRect.setAttribute('stroke', '#000000');
+		// newRect.setAttribute('transform', 'translate(0.5,0.5)');
+		// newRect.setAttribute('transform', `rotate(${getRandomInt(361)}, 200, 200)`);
+		// newRect.setAttribute('transform', `rotate(15, 125, 125)`);
+		newRect.addEventListener('pointerdown', figureMouseDown);
+		svg.appendChild(newRect);
+	};
+
+	// inputImage.addEventListener('click', addFigure);
+});
